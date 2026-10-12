@@ -2,7 +2,7 @@
    It only ever answers requests for the app's own files. Everything else (above all the sheet endpoint on
    script.google.com) goes straight to the network and is never stored. Changed files appear the next time the app opens. */
 const CACHE = 'pc-v1';
-const SHELL = ['./', 'index.html', 'style.css', 'logic.js', 'api.js', 'app.js', 'manifest.webmanifest',
+const SHELL = ['./', 'index.html', 'style.css', 'logic.js', 'api.js', 'dash.js', 'app.js', 'manifest.webmanifest',
   'fonts/bricolage-grotesque.woff2', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon.png'];
 
 self.addEventListener('install', (event) => {

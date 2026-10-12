@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (logic, root) {
   'use strict';
 
-  var KEY_LINK = 'pc.s', KEY_PIN = 'pc.pin', KEY_SNAP = 'pc.snap', DEFAULT_TIMEOUT_MS = 30000;
+  var KEY_LINK = 'pc.s', KEY_PIN = 'pc.pin', KEY_SNAP = 'pc.snap', KEY_DASH = 'pc.dash', DEFAULT_TIMEOUT_MS = 30000;
 
   /** Codes: the server's (NOT_SETUP BAD_PIN LOCKED BAD_REQUEST SERVER) plus NO_LINK NO_PIN NETWORK TIMEOUT BAD_RESPONSE. */
   function ApiError(code, message, extra) {
@@ -106,7 +106,7 @@
       hasPin: function () { return !!read(KEY_PIN); },
       setPin: function (pin) { write(KEY_PIN, String(pin)); },
       clearPin: function () { erase(KEY_PIN); },
-      forget: function () { erase(KEY_LINK); erase(KEY_PIN); erase(KEY_SNAP); },
+      forget: function () { erase(KEY_LINK); erase(KEY_PIN); erase(KEY_SNAP); erase(KEY_DASH); },
       /** Keeps the last numbers on this device so the next open can show them at once while fresh ones load. */
       saveSnapshot: function (form) { try { write(KEY_SNAP, JSON.stringify(form)); } catch (e) { /* keep going without it */ } },
       readSnapshot: function () {
@@ -115,6 +115,16 @@
         try {
           var f = JSON.parse(text);
           return (f && typeof f === 'object' && typeof f.balance === 'number' && typeof f.month === 'string') ? f : null;
+        } catch (e) { return null; }
+      },
+      /** Keeps the last dashboard on the device, so the Dashboard screen can show it at once while a fresh one loads. */
+      saveDash: function (d) { try { write(KEY_DASH, JSON.stringify(d)); } catch (e) { /* keep going without it */ } },
+      readDash: function () {
+        var text = read(KEY_DASH);
+        if (!text) { return null; }
+        try {
+          var d = JSON.parse(text), obj = function (x) { return !!x && typeof x === 'object' && !Array.isArray(x); };
+          return (obj(d) && typeof d.month === 'string' && Array.isArray(d.months) && obj(d.tiles) && Array.isArray(d.weeks) && obj(d.where) && Array.isArray(d.employees)) ? d : null;
         } catch (e) { return null; }
       },
       /** {total, server}: how long the last successful request took in all, and how much of that was the sheet. */

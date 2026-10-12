@@ -65,7 +65,7 @@
       <button id="refreshBtn" class="icon" type="button" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>
       </button>
-      <a id="openSheet" class="chip-link" href="#" target="_blank" rel="noopener" hidden>Open sheet</a>
+      <button id="dashBtn" class="chip-link" type="button" hidden>Dashboard</button>
     </div>
   </header>
   <p id="homeStatus" class="msg" role="status"></p>
@@ -139,13 +139,81 @@
       <ul id="recent"></ul>
     </section>
   </main>
-  <footer class="foot"><p id="speed" class="speed"></p><button id="forget" class="quiet" type="button">Forget this device</button></footer>
+  <footer class="foot"><p id="speed" class="speed"></p><a id="openSheet" class="quiet" href="#" target="_blank" rel="noopener" hidden>Open the sheet</a><button id="forget" class="quiet" type="button">Forget this device</button></footer>
+</section>
+
+<section id="screen-dash" class="screen dash" hidden>
+  <header class="bar">
+    <div class="bar-title">
+      <button id="dashBack" class="icon" type="button" aria-label="Back to the cash box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h1>Dashboard</h1>
+    </div>
+    <button id="dashRefresh" class="icon" type="button" aria-label="Refresh the dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>
+    </button>
+  </header>
+  <p id="dashStatus" class="msg" role="status"></p>
+  <button id="dashRetry" class="primary" type="button" hidden>Try again</button>
+  <main id="dashBody" hidden>
+    <div id="dashMonths" class="months" role="group" aria-label="Month"></div>
+
+    <section class="hero" aria-label="Remaining petty cash">
+      <span class="cap">Remaining petty cash</span>
+      <span id="dRemaining" class="hero-amt"></span>
+      <div class="meter"><i id="dUsedBar" data-pct="0"></i></div>
+      <p id="dUsedText" class="small muted"></p>
+    </section>
+    <dl class="tiles">
+      <div><dt>Balance forwarded</dt><dd id="dForwarded" class="amt-fig"></dd><dd class="sub">carried in from the previous month</dd></div>
+      <div><dt>Fund received</dt><dd id="dReceived" class="amt-fig"></dd><dd class="sub">received from your boss</dd></div>
+      <div><dt>Disbursed</dt><dd id="dDisbursed" class="amt-fig"></dd><dd class="sub">expenses plus cash advances</dd></div>
+    </dl>
+
+    <section aria-labelledby="hWeek">
+      <h2 id="hWeek">Week by week</h2>
+      <div id="weekBlock">
+        <ul class="legend">
+          <li><i class="sw sw-in"></i>Fund received</li>
+          <li><i class="sw sw-out"></i>Disbursed</li>
+          <li><i class="sw sw-line"></i>Closing balance</li>
+        </ul>
+        <svg id="weekChart" class="chart" viewBox="0 0 360 200" role="group" aria-label=""></svg>
+        <p id="weekRead" class="read" aria-live="polite">Tap a week to see its figures.</p>
+        <table class="wk">
+          <thead><tr><th scope="col">Week</th><th scope="col">Received</th><th scope="col">Disbursed</th><th scope="col">Closing</th></tr></thead>
+          <tbody id="weekRows"></tbody>
+        </table>
+      </div>
+      <p id="weekEmpty" class="muted" hidden>No weeks to show for this month yet.</p>
+    </section>
+
+    <section aria-labelledby="hWhere">
+      <h2 id="hWhere">Where the money is</h2>
+      <div class="donut-wrap">
+        <svg id="donut" viewBox="0 0 120 120" role="img" aria-label=""></svg>
+        <div class="donut-mid"><span class="cap">Cash available</span><span id="dAvailable" class="mid-amt"></span></div>
+      </div>
+      <ul id="whereList" class="where-list"></ul>
+    </section>
+
+    <section aria-labelledby="hEmp">
+      <h2 id="hEmp">Employees</h2>
+      <p id="empEmpty" class="muted" hidden></p>
+      <ul id="empList" class="emps"></ul>
+      <p id="empTotals" class="emp-totals"></p>
+      <p id="empOthers" class="small muted" hidden></p>
+    </section>
+  </main>
+  <footer class="foot"><p id="dashSpeed" class="speed"></p></footer>
 </section>
 
 <p id="storageNote" class="note" role="status" hidden>This browser can't remember this device, so you'll enter the PIN each time.</p>
 
 <script src="logic.js"></script>
 <script src="api.js"></script>
+<script src="dash.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@
 
   function show(name) {
     S.screen = name;
-    ['loading', 'setup', 'pin', 'home'].forEach(function (n) { $('screen-' + n).hidden = (n !== name); });
+    ['loading', 'setup', 'pin', 'home', 'dash'].forEach(function (n) { $('screen-' + n).hidden = (n !== name); });
     $('storageNote').hidden = api.storageOk;
     if (name === 'home') { fitAmt(); }            // sizes need the screen to be showing
   }
@@ -270,8 +270,11 @@
     return S.refreshing;
   }
   $('refreshBtn').addEventListener('click', refresh);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && S.screen === 'home') { refresh(); } });
-  window.addEventListener('online', function () { if (S.screen === 'home') { refresh(); } });
+  function refreshShown() {                      // whichever of home and the dashboard is showing
+    if (S.screen === 'home') { refresh(); } else if (S.screen === 'dash' && dash) { dash.refresh(); }
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { refreshShown(); } });
+  window.addEventListener('online', refreshShown);
 
   // pull down from the top of the page to refresh
   var pull = { y0: null, dy: 0 };
@@ -457,10 +460,21 @@
 
   function forget() {
     api.forget(); S.form = null; S.pin = '';
+    if (dash) { dash.reset(); }
     clearInterval(S.lockTimer); S.lockUntil = 0; $('pinPad').classList.remove('locked');
     show('setup');
   }
   $('forget').addEventListener('click', forget);
+
+  /* ---------- the dashboard (its own file: dash.js) ---------- */
+  var dash = PC.initDash ? PC.initDash({
+    api: api, show: show,
+    isShowing: function () { return S.screen === 'dash'; },
+    homeMonth: function () { return S.form ? S.form.month : ''; },
+    pinProblem: function (e) { showPin(); pinFailed(e); }
+  }) : null;
+  $('dashBtn').hidden = !dash;                   // an old copy of the app without dash.js simply has no Dashboard button
+  $('dashBtn').addEventListener('click', function () { if (dash) { dash.open(); } });
 
   /* ---------- start ---------- */
   function boot() {

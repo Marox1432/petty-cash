@@ -102,6 +102,64 @@
     return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  return { keypadPress: keypadPress, keyFromEvent: keyFromEvent, ringState: ringState, parseSetupHash: parseSetupHash, parseLinkText: parseLinkText,
+  /** Round axis values from min to max that always include zero: {min, max, step, ticks}. `want` is the number of intervals aimed for. */
+  function niceScale(minv, maxv, want) {
+    want = want > 0 ? want : 4;
+    var lo = Math.min(0, isFinite(minv) ? minv : 0), hi = Math.max(0, isFinite(maxv) ? maxv : 0);
+    var range = hi - lo;
+    if (!(range > 0)) { return { min: 0, max: 1, step: 1, ticks: [0, 1] }; }
+    var raw = range / want, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = mag * 10;
+    [1, 2, 2.5, 5, 10].some(function (m) { if (m * mag >= raw - 1e-12) { step = m * mag; return true; } return false; });
+    var nmin = Math.floor(lo / step + 1e-9) * step, nmax = Math.ceil(hi / step - 1e-9) * step, ticks = [];
+    for (var i = 0; nmin + i * step <= nmax + step / 1e6; i++) { ticks.push(Math.round((nmin + i * step) * 1e9) / 1e9); }
+    return { min: ticks[0], max: ticks[ticks.length - 1], step: step, ticks: ticks };
+  }
+
+  /** Short axis labels: 0, 128, 2.5k, 12.9k, 1.25M. */
+  function compactMoney(n) {
+    var v = Number(n);
+    if (!isFinite(v)) { return '0'; }
+    var a = Math.abs(v), sign = v < 0 ? '-' : '';
+    var trim = function (x) { return String(Math.round(x * 100) / 100); };
+    if (a >= 1e6) { return sign + trim(a / 1e6) + 'M'; }
+    if (Math.round(a) >= 1000) { return sign + trim(a / 1000) + 'k'; }
+    if (a === 0) { return '0'; }
+    return sign + (a >= 10 ? String(Math.round(a)) : trim(a));
+  }
+
+  /** "99% of available cash used" (the sheet's wording). */
+  function usedText(p) {
+    var v = Number(p);
+    return Math.round((isFinite(v) ? v : 0) * 100) + '% of available cash used';
+  }
+
+  /** The sheet's employee status as a short key: settled, due, owed or none. */
+  function statusKind(status) {
+    return { 'Fully liquidated': 'settled', 'Bills still due': 'due', 'Owed to employee': 'owed' }[txt(status)] || 'none';
+  }
+
+  /** "Week 2 (05-11 Oct)" -> "W2"; anything else -> its first six characters. */
+  function weekShort(label) {
+    var m = /^Week (\d+)/.exec(txt(label));
+    return m ? 'W' + m[1] : txt(label).slice(0, 6);
+  }
+
+  /** Where each positive amount sits on a ring of circumference `circ`: [{i, offset, length}], with `gap` between neighbours. */
+  function donutArcs(values, circ, gap) {
+    var pos = values.map(function (v) { var n = Number(v); return isFinite(n) && n > 0 ? n : 0; });
+    var total = pos.reduce(function (a, b) { return a + b; }, 0);
+    if (!(total > 0)) { return []; }
+    var live = pos.filter(function (v) { return v > 0; }).length, at = 0, out = [];
+    pos.forEach(function (v, i) {
+      if (!(v > 0)) { return; }
+      var share = v / total * circ;
+      out.push({ i: i, offset: at, length: live === 1 ? circ : Math.max(0.5, share - gap) });
+      at += share;
+    });
+    return out;
+  }
+
+  return { niceScale: niceScale, compactMoney: compactMoney, usedText: usedText, statusKind: statusKind, weekShort: weekShort, donutArcs: donutArcs,
+           keypadPress: keypadPress, keyFromEvent: keyFromEvent, ringState: ringState, parseSetupHash: parseSetupHash, parseLinkText: parseLinkText,
            endpointUrl: endpointUrl, buildPayload: buildPayload, formatMoney: formatMoney, shortDate: shortDate, monthOf: monthOf, overdrawHint: overdrawHint };
 });
