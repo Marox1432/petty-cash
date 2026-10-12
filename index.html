@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Petty Cash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f211b" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Petty Cash">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- the small milled-edge coin that marks the app on the quiet screens -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" stroke-width="6" stroke-dasharray="1.6 1.9" stroke-opacity=".9"/>
+    <circle cx="32" cy="32" r="24" fill="var(--mark-face, #356859)"/>
+    <circle cx="32" cy="32" r="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-opacity=".55"/>
+    <path d="M25 33.5l5 5 9-11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<section id="screen-loading" class="screen center" aria-live="polite">
+  <svg class="mark spin" width="64" height="64"><use href="#mark"/></svg>
+  <p class="muted">Opening the cash box</p>
+</section>
+
+<section id="screen-setup" class="screen" hidden>
+  <svg class="mark" width="56" height="56" aria-hidden="true"><use href="#mark"/></svg>
+  <h1>Petty Cash</h1>
+  <p class="lede">This device isn't connected to your sheet yet. Paste the setup link here. You get it from the sheet: Petty Cash &gt; App: setup link.</p>
+  <form id="linkForm" autocomplete="off">
+    <label for="linkInput">Setup link or Web app URL</label>
+    <input id="linkInput" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <p id="linkMsg" class="msg" role="status"></p>
+    <button id="linkGo" class="primary" type="submit">Connect</button>
+  </form>
+</section>
+
+<section id="screen-pin" class="screen center" hidden>
+  <svg class="mark" width="56" height="56" aria-hidden="true"><use href="#mark"/></svg>
+  <h1>Enter your PIN</h1>
+  <div id="pinDots" class="dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <p id="pinMsg" class="msg" role="status" aria-live="polite"></p>
+  <div id="pinPad" class="pad" role="group" aria-label="PIN pad">
+    <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+    <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+    <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+    <span></span><button type="button" data-key="0">0</button>
+    <button type="button" data-key="back" aria-label="Delete last digit">&#9003;</button>
+  </div>
+  <button id="forgetPin" class="quiet" type="button">Use a different setup link</button>
+</section>
+
+<section id="screen-home" class="screen" hidden>
+  <header class="bar">
+    <h1>Petty Cash</h1>
+    <div class="bar-actions">
+      <button id="refreshBtn" class="icon" type="button" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>
+      </button>
+      <a id="openSheet" class="chip-link" href="#" target="_blank" rel="noopener" hidden>Open sheet</a>
+    </div>
+  </header>
+  <p id="homeStatus" class="msg" role="status"></p>
+  <button id="retryBtn" class="primary" type="button" hidden>Try again</button>
+  <main id="homeBody">
+    <div class="coin-wrap">
+      <div id="ring" class="coin" role="img" aria-label="" data-level="ok">
+        <svg viewBox="0 0 200 200" class="coin-svg" aria-hidden="true"></svg>
+        <div class="coin-face">
+          <span class="cap">Remaining</span>
+          <span id="balAmt" class="amt-big">0.00</span>
+          <span id="month" class="mon"></span>
+        </div>
+      </div>
+    </div>
+    <div class="strip">
+      <div class="srow"><span class="k">Received</span><div class="track"><i id="barReceived" data-pct="0"></i></div><span id="valReceived" class="v">0.00</span></div>
+      <div class="srow"><span class="k">Spent</span><div class="track"><i id="barSpent" data-pct="0"></i></div><span id="valSpent" class="v">0.00</span></div>
+    </div>
+    <form id="entry" data-type="expense" autocomplete="off" novalidate>
+      <div id="types" class="types" role="group" aria-label="What are you recording">
+        <button type="button" data-type="receipt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10m0 0l-4-4m4 4l4-4"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+          <span>Fund received</span></button>
+        <button type="button" data-type="expense" class="on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          <span>Expense</span></button>
+        <button type="button" data-type="advance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 3-5 5.5-5s4.9 1.8 5.5 5"/><path d="M17 8h4m0 0l-2-2m2 2l-2 2"/></svg>
+          <span>Cash advance</span></button>
+        <button type="button" data-type="bill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+          <span>Bill submitted</span></button>
+      </div>
+      <p id="hint" class="hint"></p>
+
+      <div class="amount"><span id="amountDisplay" class="amount-val empty" data-value="" aria-live="polite">0.00</span></div>
+      <div id="keypad" class="keys" role="group" aria-label="Amount keypad">
+        <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+        <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+        <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+        <button type="button" data-key=".">.</button><button type="button" data-key="0">0</button>
+        <button type="button" data-key="back" aria-label="Delete last digit">&#9003;</button>
+      </div>
+
+      <div class="two">
+        <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
+        <div class="field"><label for="mot">Mode of transaction</label><select id="mot"></select></div>
+      </div>
+      <div class="field" id="rowEmp">
+        <label for="emp" id="lblEmp">Care of (optional)</label>
+        <input id="emp" type="text" autocomplete="off">
+        <div id="chipsEmp" class="chips"></div>
+      </div>
+      <div class="field" id="rowDesc">
+        <label for="desc" id="lblDesc">Description</label>
+        <input id="desc" type="text" autocomplete="off">
+        <div id="chipsDesc" class="chips"></div>
+      </div>
+      <div class="field" id="rowRemarks" hidden>
+        <label for="remarks">Remarks (optional)</label>
+        <input id="remarks" type="text" placeholder="e.g. Received from boss" autocomplete="off">
+      </div>
+      <p id="warn" class="warn" role="status" hidden></p>
+      <button id="save" class="primary" type="submit">Save expense</button>
+      <p id="msg" class="msg" role="status"></p>
+    </form>
+    <section class="recent">
+      <h2>Recent</h2>
+      <p id="recentEmpty" class="muted" hidden>No entries this month yet. Your first one will show up here.</p>
+      <ul id="recent"></ul>
+    </section>
+  </main>
+  <footer class="foot"><button id="forget" class="quiet" type="button">Forget this device</button></footer>
+</section>
+
+<p id="storageNote" class="note" role="status" hidden>This browser can't remember this device, so you'll enter the PIN each time.</p>
+
+<script src="logic.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
