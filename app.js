@@ -204,26 +204,49 @@
     if (f.sheetUrl) { $('openSheet').href = f.sheetUrl; $('openSheet').hidden = false; }
   }
 
+  /** A small line under the numbers: how long the last update took, and how much of it was the sheet. */
+  function showSpeed() {
+    var t = api.lastTiming();
+    if (!t) { return; }
+    var sec = function (ms) { return (ms / 1000).toFixed(1) + ' s'; };
+    $('speed').textContent = 'Last update ' + sec(t.total) + (t.server !== null ? ' \u00b7 sheet ' + sec(t.server) : '');
+  }
+
+  /** A fresh snapshot arrived: remember it on the device (for the next quick open) and note the timing. */
+  function gotForm(form) {
+    S.form = form;
+    api.saveSnapshot(form);
+    showSpeed();
+  }
+
   function setStatus(text, isError) { $('homeStatus').textContent = text || ''; $('homeStatus').className = 'msg' + (isError ? ' err' : ''); }
 
   /** Loads the form snapshot with the saved PIN. Success shows home; a refused PIN goes back to the PIN screen. */
   function loadHome() {
     return api.call('form').then(function (form) {
-      S.form = form;
+      $('refreshBtn').classList.remove('spin');
+      gotForm(form);
       $('retryBtn').hidden = true;
       $('homeBody').hidden = false;
       setStatus('', false);
       renderHome(form);
       show('home');
     }).catch(function (e) {
+      $('refreshBtn').classList.remove('spin');
       if (e.code === 'BAD_PIN' || e.code === 'LOCKED' || e.code === 'NOT_SETUP') {
         showPin();
         pinFailed(e);
       } else {
+        var down = e.code === 'NETWORK' || e.code === 'TIMEOUT';
         show('home');
-        $('homeBody').hidden = true;                 // nothing to show or save into until the numbers arrive
-        setStatus(e.code === 'NETWORK' || e.code === 'TIMEOUT' ? 'No connection. Try again.' : (e.message || 'Something went wrong.'), true);
-        $('retryBtn').hidden = false;
+        if (S.form) {                                // the last numbers are on screen: keep them, say they may be old
+          $('retryBtn').hidden = true;
+          setStatus(down ? 'No connection. Showing the last numbers.' : (e.message || 'Something went wrong.'), true);
+        } else {
+          $('homeBody').hidden = true;               // nothing to show or save into until the numbers arrive
+          setStatus(down ? 'No connection. Try again.' : (e.message || 'Something went wrong.'), true);
+          $('retryBtn').hidden = false;
+        }
       }
     });
   }
@@ -234,7 +257,7 @@
     if (S.refreshing) { return S.refreshing; }
     $('refreshBtn').classList.add('spin');
     S.refreshing = api.call('form').then(function (form) {
-      S.form = form;
+      gotForm(form);
       $('retryBtn').hidden = true;
       $('homeBody').hidden = false;                // the first load may have failed: this is the way back in
       setStatus('', false);
@@ -393,7 +416,7 @@
         ' · bills ' + L.formatMoney(res.employee.bills) + ' · balance ' + L.formatMoney(res.employee.balance);
       m.appendChild(sub);
     }
-    if (data.form) { S.form = data.form; renderHome(data.form); }
+    if (data.form) { gotForm(data.form); renderHome(data.form); }
     else { refresh(); }                       // saved, but no snapshot came back: fetch it (never resend the entry)
     coinDrop();
     if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) { /* not supported */ } }
@@ -417,6 +440,7 @@
     if (S.busy) { return; }
     var amount = S.amount.replace(/\.$/, '');
     if (!(Number(amount) > 0)) { showMsg('Enter an amount greater than zero.', 'err'); return; }
+    if (navigator.onLine === false) { showMsg('No connection. Connect and try again; nothing was sent.', 'err'); return; }
     var payload = L.buildPayload({ type: S.type, date: $('date').value, amount: amount, mot: $('mot').value,
       description: $('desc').value, emp: $('emp').value, remarks: $('remarks').value });
     setBusy(true);
@@ -446,7 +470,17 @@
     }
     if (!api.hasLink()) { show('setup'); return; }
     if (!api.hasPin()) { showPin(); return; }
-    show('loading');
+    var last = api.readSnapshot();
+    if (last) {                                  // quick open: the numbers from last time now, fresh ones in a moment
+      S.form = last;
+      $('retryBtn').hidden = true;
+      $('homeBody').hidden = false;
+      renderHome(last);
+      show('home');
+      $('refreshBtn').classList.add('spin');     // the refresh button turns while the new numbers load
+    } else {
+      show('loading');
+    }
     loadHome();
   }
   PC.app = { refresh: refresh };

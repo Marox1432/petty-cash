@@ -8,7 +8,7 @@
 })(typeof self !== 'undefined' ? self : this, function (logic, root) {
   'use strict';
 
-  var KEY_LINK = 'pc.s', KEY_PIN = 'pc.pin', DEFAULT_TIMEOUT_MS = 30000;
+  var KEY_LINK = 'pc.s', KEY_PIN = 'pc.pin', KEY_SNAP = 'pc.snap', DEFAULT_TIMEOUT_MS = 30000;
 
   /** Codes: the server's (NOT_SETUP BAD_PIN LOCKED BAD_REQUEST SERVER) plus NO_LINK NO_PIN NETWORK TIMEOUT BAD_RESPONSE. */
   function ApiError(code, message, extra) {
@@ -27,6 +27,7 @@
     var storage = opts.storage;
     var mem = {};
     var storageOk = true;
+    var timing = null;
 
     try {                                                  // can this browser keep anything between visits?
       storage.setItem('pc.probe', '1'); storage.removeItem('pc.probe');
@@ -56,6 +57,7 @@
       var pin = o.pin !== undefined ? o.pin : read(KEY_PIN);
       if (!pin) { return Promise.reject(new ApiError('NO_PIN', 'Enter your PIN.')); }
 
+      var t0 = Date.now();
       var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
       var timer;
       var timeout = new Promise(function (_, reject) {
@@ -86,6 +88,7 @@
             throw new ApiError(body.code || 'SERVER', body.message || 'Something went wrong.',
               { retryAfterSec: body.retryAfterSec, attemptsLeft: body.attemptsLeft });
           }
+          timing = { total: Date.now() - t0, server: typeof body.ms === 'number' ? body.ms : null };
           return body.data;
         });
       }, function () {
@@ -103,7 +106,19 @@
       hasPin: function () { return !!read(KEY_PIN); },
       setPin: function (pin) { write(KEY_PIN, String(pin)); },
       clearPin: function () { erase(KEY_PIN); },
-      forget: function () { erase(KEY_LINK); erase(KEY_PIN); },
+      forget: function () { erase(KEY_LINK); erase(KEY_PIN); erase(KEY_SNAP); },
+      /** Keeps the last numbers on this device so the next open can show them at once while fresh ones load. */
+      saveSnapshot: function (form) { try { write(KEY_SNAP, JSON.stringify(form)); } catch (e) { /* keep going without it */ } },
+      readSnapshot: function () {
+        var text = read(KEY_SNAP);
+        if (!text) { return null; }
+        try {
+          var f = JSON.parse(text);
+          return (f && typeof f === 'object' && typeof f.balance === 'number' && typeof f.month === 'string') ? f : null;
+        } catch (e) { return null; }
+      },
+      /** {total, server}: how long the last successful request took in all, and how much of that was the sheet. */
+      lastTiming: function () { return timing; },
       call: call,
       get storageOk() { return storageOk; }
     };

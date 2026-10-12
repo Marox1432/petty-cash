@@ -151,6 +151,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus { border-color: var
 
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .foot { margin-top: 14px; text-align: center; }
+.speed { color: var(--muted); font-size: 0.78rem; margin-bottom: 6px; min-height: 1.2em; }
 .note {
   position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom));
   max-width: 416px; margin: 0 auto;

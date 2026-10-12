@@ -24,7 +24,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.open(CACHE).then((cache) =>
       cache.match(req, { ignoreSearch: true }).then((hit) => {
-        const fresh = fetch(req).then((res) => {
+        const fresh = fetch(req, { cache: 'no-cache' }).then((res) => {      // always ask the server (a cheap 'unchanged' answer), so updates are not held back by the browser's own 10-minute copy
           if (res && res.ok) { cache.put(req, res.clone()); }
           return res;
         });
